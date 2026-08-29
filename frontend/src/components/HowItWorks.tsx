@@ -19,21 +19,19 @@ const POINTS = [
   },
 ];
 
-/// Four sentences, no jargon: a judge should get the idea before reading the
-/// numbers. Deliberately the first thing under the header.
 export function HowItWorks() {
   return (
-    <section className="panel p-5">
-      <h2 className="text-[0.68rem] font-medium tracking-[0.14em] text-ink-400 uppercase">How it works</h2>
-      <ol className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <section className="panel p-5 font-apple">
+      <h2 className="font-grotesk text-[0.68rem] font-bold tracking-widest text-[#86868b] uppercase">How it works</h2>
+      <ol className="mt-3.5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {POINTS.map((point, index) => (
-          <li key={point.title} className="flex gap-2.5">
-            <span className="tabular mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-mint-500/30 bg-mint-900/40 text-[0.65rem] text-mint-300">
+          <li key={point.title} className="flex gap-3">
+            <span className="tabular font-display mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-[#0071e3]/20 bg-[#f0f6fe] text-[0.72rem] font-extrabold text-[#0071e3] shadow-2xs">
               {index + 1}
             </span>
             <span className="min-w-0">
-              <span className="block text-xs font-medium text-white">{point.title}</span>
-              <span className="mt-0.5 block text-[0.7rem] leading-snug text-ink-400">{point.body}</span>
+              <span className="block font-display text-xs font-bold text-[#1d1d1f]">{point.title}</span>
+              <span className="mt-0.5 block text-[0.72rem] leading-relaxed font-medium text-[#86868b]">{point.body}</span>
             </span>
           </li>
         ))}

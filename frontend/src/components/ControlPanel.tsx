@@ -26,29 +26,36 @@ const ICONS = {
 };
 
 const VARIANT = {
-  primary: "border-mint-500/40 bg-mint-500/10 hover:border-mint-400/70 hover:bg-mint-500/15 text-mint-200",
-  secondary: "border-ink-600 bg-ink-850 hover:border-ink-400 hover:bg-ink-800 text-ink-100",
-  danger: "border-rose-alert/35 bg-rose-alert/[0.06] hover:border-rose-alert/60 hover:bg-rose-alert/10 text-rose-100",
+  primary: "bg-[#0071e3] text-white hover:bg-[#0077ed] border-transparent shadow-xs font-grotesk",
+  secondary: "bg-[#1d1d1f] text-white hover:bg-[#333336] border-transparent shadow-xs font-grotesk",
+  danger: "bg-[#fff2f1] text-[#d70015] border-[#ffc2bf] hover:bg-[#ffe5e3] shadow-2xs font-grotesk",
+};
+
+const ICON_BG = {
+  primary: "bg-white/20 text-white border-white/20",
+  secondary: "bg-white/20 text-white border-white/20",
+  danger: "bg-[#ff3b30]/15 text-[#d70015] border-[#ff3b30]/30",
 };
 
 export function ControlPanel({ actions, busy, blockedReason }: Props) {
   return (
     <section className="panel p-6">
       <div className="mb-1 flex items-baseline justify-between gap-4">
-        <h2 className="text-sm font-semibold tracking-tight text-white">Machine controls</h2>
-        {busy && <span className="text-[0.68rem] tracking-[0.14em] text-mint-300 uppercase">working</span>}
+        <h2 className="font-grotesk text-base font-bold tracking-tight text-[#1d1d1f]">Machine controls</h2>
+        {busy && <span className="font-grotesk text-[0.68rem] font-bold tracking-widest text-[#0071e3] uppercase">working</span>}
       </div>
-      <p className="text-xs text-ink-400">
+      <p className="font-apple text-xs font-medium text-[#86868b]">
         Each control is a request from a machine controller. The contract decides what happens next.
       </p>
 
       {blockedReason && (
-        <p className="mt-4 rounded-lg border border-amber-glow/25 bg-amber-glow/[0.07] px-3 py-2 text-xs text-amber-glow">
+        <div className="font-apple mt-4 flex items-center gap-2.5 rounded-2xl border border-[#ffe3b3] bg-[#fff8ec] px-4 py-3 text-xs font-bold text-[#b36b00] shadow-2xs">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-[#ff9500]" />
           {blockedReason}
-        </p>
+        </div>
       )}
 
-      <div className="mt-4 grid gap-2.5">
+      <div className="mt-4 grid gap-3">
         {actions.map((action) => {
           const Icon = ICONS[action.variant];
           const disabled = Boolean(action.disabled) || busy;
@@ -58,18 +65,18 @@ export function ControlPanel({ actions, busy, blockedReason }: Props) {
               type="button"
               onClick={action.onRun}
               disabled={disabled}
-              className={`focus-ring group flex items-center gap-3.5 rounded-xl border px-4 py-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-45 ${VARIANT[action.variant]}`}
+              className={`focus-ring group flex items-center gap-4 rounded-2xl border px-4 py-3.5 text-left transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 ${VARIANT[action.variant]}`}
             >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-current/20 bg-ink-950/40">
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border ${ICON_BG[action.variant]}`}>
                 {busy ? <SpinnerIcon className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">{action.title}</span>
-                <span className="tabular mt-0.5 block text-xs opacity-70">
-                  {action.route} · {formatMon(action.amount)} MON
+                <span className="block text-sm font-bold tracking-tight">{action.title}</span>
+                <span className="tabular mt-0.5 block font-mono text-xs font-medium opacity-90">
+                  {action.route} · <span className="font-bold">{formatMon(action.amount)} MON</span>
                 </span>
               </span>
-              <span className="hidden max-w-[11rem] shrink-0 text-right text-[0.7rem] leading-snug opacity-55 sm:block">
+              <span className="font-apple hidden max-w-[12rem] shrink-0 text-right text-[0.72rem] font-semibold leading-snug opacity-80 sm:block">
                 {action.hint}
               </span>
             </button>

@@ -22,14 +22,14 @@ function Node({ machine }: { machine: MachineState }) {
     <div className="flex shrink-0 flex-col items-center gap-2 text-center">
       <span
         className={`grid h-14 w-14 place-items-center rounded-2xl border transition-colors ${
-          dim ? "border-ink-700 bg-ink-900 text-ink-600" : "border-ink-600 bg-ink-850 text-mint-300"
+          dim ? "border-black/[0.08] bg-[#f5f5f7] text-[#86868b]" : "border-black/[0.08] bg-white text-[#0071e3] shadow-xs"
         }`}
       >
         <Icon className="h-6 w-6" />
       </span>
       <div>
-        <p className="text-xs font-semibold text-white">{machine.spec.id}</p>
-        <p className="tabular text-[0.7rem] text-ink-400">
+        <p className="font-display text-xs font-extrabold text-[#1d1d1f]">{machine.spec.id}</p>
+        <p className="tabular text-[0.7rem] font-bold text-[#86868b]">
           {machine.registered ? `${formatMon(machine.balance, 3)} MON` : "not registered"}
         </p>
       </div>
@@ -38,35 +38,34 @@ function Node({ machine }: { machine: MachineState }) {
 }
 
 const LINE_TONE: Record<EdgeState, string> = {
-  idle: "bg-ink-700",
-  flowing: "bg-mint-500/60",
-  confirmed: "bg-mint-500/80",
-  blocked: "bg-rose-alert/70",
+  idle: "bg-black/10",
+  flowing: "bg-[#0071e3]",
+  confirmed: "bg-[#34c759]",
+  blocked: "bg-[#ff3b30]",
 };
 
 const LABEL_TONE: Record<EdgeState, string> = {
-  idle: "border-ink-600 bg-ink-850 text-ink-300",
-  flowing: "border-mint-500/40 bg-mint-900/60 text-mint-300",
-  confirmed: "border-mint-500/50 bg-mint-900/70 text-mint-300",
-  blocked: "border-rose-alert/40 bg-rose-alert/10 text-rose-alert",
+  idle: "border-black/[0.08] bg-white text-[#1d1d1f] shadow-2xs font-semibold",
+  flowing: "border-[#0071e3]/40 bg-[#f0f6fe] text-[#0071e3] shadow-xs font-bold",
+  confirmed: "border-[#bbf2cd] bg-[#eafaf0] text-[#1d8a3b] shadow-xs font-bold",
+  blocked: "border-[#ffc2bf] bg-[#fff2f1] text-[#d70015] shadow-xs font-bold",
 };
 
 function Edge({ amount, state }: { amount: bigint; state: EdgeState }) {
   return (
     <div className="relative flex min-h-16 w-full flex-1 items-center justify-center py-3 md:min-h-0 md:py-0">
-      {/* Horizontal rail on wide screens, vertical on narrow. */}
-      <span className={`absolute hidden h-px w-full md:block ${LINE_TONE[state]}`} aria-hidden="true" />
-      <span className={`absolute h-full w-px md:hidden ${LINE_TONE[state]}`} aria-hidden="true" />
+      <span className={`absolute hidden h-1 w-full rounded-full md:block ${LINE_TONE[state]}`} aria-hidden="true" />
+      <span className={`absolute h-full w-1 rounded-full md:hidden ${LINE_TONE[state]}`} aria-hidden="true" />
 
       {state === "flowing" && (
         <>
           <span
-            className="absolute hidden h-1.5 w-1.5 rounded-full bg-mint-300 shadow-[0_0_10px_2px_rgba(46,230,168,0.7)] md:block"
+            className="absolute hidden h-2.5 w-2.5 rounded-full bg-[#0071e3] shadow-[0_0_12px_2px_rgba(0,113,227,0.8)] md:block"
             style={{ animation: "travel-x 1.2s ease-in-out infinite" }}
             aria-hidden="true"
           />
           <span
-            className="absolute h-1.5 w-1.5 rounded-full bg-mint-300 shadow-[0_0_10px_2px_rgba(46,230,168,0.7)] md:hidden"
+            className="absolute h-2.5 w-2.5 rounded-full bg-[#0071e3] shadow-[0_0_12px_2px_rgba(0,113,227,0.8)] md:hidden"
             style={{ animation: "travel-y 1.2s ease-in-out infinite" }}
             aria-hidden="true"
           />
@@ -74,10 +73,10 @@ function Edge({ amount, state }: { amount: bigint; state: EdgeState }) {
       )}
 
       <span
-        className={`tabular relative z-10 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.7rem] font-medium transition-colors ${LABEL_TONE[state]}`}
+        className={`tabular relative z-10 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-[0.7rem] transition-colors ${LABEL_TONE[state]}`}
       >
-        {state === "confirmed" && <CheckIcon className="h-3 w-3" />}
-        {state === "blocked" && <BlockIcon className="h-3 w-3" />}
+        {state === "confirmed" && <CheckIcon className="h-3 w-3 text-[#34c759]" />}
+        {state === "blocked" && <BlockIcon className="h-3 w-3 text-[#ff3b30]" />}
         {formatMon(amount)} MON
       </span>
     </div>
@@ -93,10 +92,10 @@ export function FlowVisualizer({ machines, activeEdge, edgeState, activeAmount, 
     <section className="panel p-6">
       <div className="mb-5 flex items-baseline justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold tracking-tight text-white">Payment flow</h2>
-          <p className="text-xs text-ink-400">Energy moves one way, money moves the other.</p>
+          <h2 className="font-grotesk text-base font-bold tracking-tight text-[#1d1d1f]">Payment flow</h2>
+          <p className="font-apple text-xs font-medium text-[#86868b]">Energy moves one way, money moves the other.</p>
         </div>
-        <span className="text-[0.68rem] tracking-[0.14em] text-ink-400 uppercase">
+        <span className="font-grotesk text-[0.68rem] font-bold tracking-widest text-[#86868b] uppercase">
           {edgeState === "flowing" ? "settling" : edgeState === "blocked" ? "refused" : "live"}
         </span>
       </div>

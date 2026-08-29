@@ -13,15 +13,12 @@ type Props = {
 type Stage = { label: string; tone: "idle" | "busy" | "ok" | "bad" };
 
 const STAGE_TONE: Record<Stage["tone"], string> = {
-  idle: "border-ink-600 bg-ink-850 text-ink-400",
-  busy: "border-amber-glow/40 bg-amber-glow/10 text-amber-glow",
-  ok: "border-mint-500/35 bg-mint-900/50 text-mint-300",
-  bad: "border-rose-alert/40 bg-rose-alert/10 text-rose-alert",
+  idle: "border-black/[0.08] bg-[#f5f5f7] text-[#86868b] font-semibold",
+  busy: "border-[#ffe3b3] bg-[#fff8ec] text-[#b36b00] font-bold",
+  ok: "border-[#bbf2cd] bg-[#eafaf0] text-[#1d8a3b] font-bold",
+  bad: "border-[#ffc2bf] bg-[#fff2f1] text-[#d70015] font-bold",
 };
 
-/// Where this machine stands in the payment lifecycle. Kept deliberately
-/// literal: a judge should be able to tell a configured rule from a requested
-/// payment from a settled one without being told what the colours mean.
 function stageFor(machine: MachineState, payment: PaymentStatus): Stage {
   const { phase, intent } = payment;
   const involved = intent?.from === machine.spec.id || intent?.to === machine.spec.id;
@@ -48,22 +45,24 @@ function stageFor(machine: MachineState, payment: PaymentStatus): Stage {
 function Rule({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-ink-400">{label}</dt>
-      <dd className={`tabular text-right ${muted ? "text-ink-400" : "text-ink-200"}`}>{value}</dd>
+      <dt className="text-[#86868b] font-medium">{label}</dt>
+      <dd className={`tabular text-right font-bold ${muted ? "text-[#86868b] font-normal" : "text-[#1d1d1f]"}`}>
+        {value}
+      </dd>
     </div>
   );
 }
 
 export function PolicyPanel({ machines, payment }: Props) {
   return (
-    <section className="panel p-6">
+    <section className="panel p-6 font-apple">
       <div className="flex items-baseline justify-between gap-4">
         <div>
-          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight text-white">
-            <ShieldIcon className="h-4 w-4 text-mint-300" />
+          <h2 className="font-grotesk flex items-center gap-2 text-base font-bold tracking-tight text-[#1d1d1f]">
+            <ShieldIcon className="h-4 w-4 text-[#0071e3]" />
             Machine spending policies
           </h2>
-          <p className="mt-0.5 text-xs text-ink-400">
+          <p className="mt-0.5 text-xs font-medium text-[#86868b]">
             Every rule below is contract state. The dashboard reads them; it cannot override them.
           </p>
         </div>
@@ -76,21 +75,21 @@ export function PolicyPanel({ machines, payment }: Props) {
           const canPay = machine.canPay;
           const canReceiveFrom = machine.canReceiveFrom;
           return (
-            <article key={machine.spec.id} className="rounded-xl border border-ink-700/80 bg-ink-900/40 p-4">
+            <article key={machine.spec.id} className="rounded-2xl border border-black/[0.06] bg-[#f5f5f7]/80 p-4">
               <div className="flex items-center gap-2">
-                <Icon className="h-4 w-4 shrink-0 text-mint-300" />
-                <h3 className="truncate text-xs font-semibold text-white" title={machine.spec.id}>
+                <Icon className="h-4 w-4 shrink-0 text-[#0071e3]" />
+                <h3 className="font-display truncate text-xs font-bold text-[#1d1d1f]" title={machine.spec.id}>
                   {machine.spec.id}
                 </h3>
               </div>
 
               <span
-                className={`mt-2.5 inline-block rounded-full border px-2 py-0.5 text-[0.68rem] whitespace-nowrap ${STAGE_TONE[stage.tone]}`}
+                className={`mt-2.5 inline-block rounded-full border px-3 py-0.5 text-[0.68rem] whitespace-nowrap shadow-2xs ${STAGE_TONE[stage.tone]}`}
               >
                 {stage.label}
               </span>
 
-              <dl className="mt-3 space-y-1.5 border-t border-ink-700/70 pt-3 text-[0.7rem]">
+              <dl className="mt-3 space-y-1.5 border-t border-black/[0.06] pt-3 text-[0.7rem]">
                 <Rule
                   label="Can receive from"
                   value={canReceiveFrom.length > 0 ? canReceiveFrom.join(", ") : "no machine"}
@@ -98,8 +97,6 @@ export function PolicyPanel({ machines, payment }: Props) {
                 />
                 <Rule
                   label="Can pay"
-                  // An allowlist that is off is not a list — say so, rather than
-                  // enumerating the fleet as if each edge had been configured.
                   value={
                     machine.registered && !machine.allowlistEnabled
                       ? "anyone in the fleet"
@@ -129,7 +126,7 @@ export function PolicyPanel({ machines, payment }: Props) {
         })}
       </div>
 
-      <p className="mt-4 border-t border-ink-700/70 pt-3 text-[0.7rem] leading-relaxed text-ink-500">
+      <p className="mt-4 border-t border-black/[0.06] pt-3 text-[0.7rem] leading-relaxed font-medium text-[#86868b]">
         A payment has to satisfy all of these at once: the payer must be active, the amount must be within its maximum
         payment and its remaining daily budget, the payee must be on its allowlist, and the payer must hold the funds.
         The contract checks them in that order and refuses with the rule that failed.

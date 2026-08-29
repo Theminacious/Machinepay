@@ -1,81 +1,68 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAccount, useBalance, useChainId } from "wagmi";
+import { useCallback, useMemo, useState } from "react";
+import { useAccount, useChainId, useBalance } from "wagmi";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { ControlPanel, type Action } from "./components/ControlPanel";
-import { FlowVisualizer, type EdgeState } from "./components/FlowVisualizer";
+import { EdgeState, FlowVisualizer } from "./components/FlowVisualizer";
 import { Header } from "./components/Header";
 import { HowItWorks } from "./components/HowItWorks";
-import { MachineCard, type CardStatus } from "./components/MachineCard";
+import { CardStatus, MachineCard } from "./components/MachineCard";
 import { PaymentStatusPanel } from "./components/PaymentStatusPanel";
 import { PolicyPanel } from "./components/PolicyPanel";
 import { SetupPanel } from "./components/SetupPanel";
 import { useActivity } from "./hooks/useActivity";
 import { useFleet } from "./hooks/useFleet";
-import { usePayment, type PaymentIntent } from "./hooks/usePayment";
+import { PaymentIntent, usePayment } from "./hooks/usePayment";
 import { useSetup } from "./hooks/useSetup";
 import { isSupportedChain, preferredChain } from "./lib/chain";
-import { clampPercent } from "./lib/format";
-import {
-  BATTERY_GAIN_PCT,
-  CHARGER_ID,
-  CHARGE_PRICE,
-  ENERGY_SETTLEMENT,
-  EV_ID,
-  OVER_LIMIT_ATTEMPT,
-  PROVIDER_ID,
-  START_BATTERY_PCT,
-} from "./lib/machines";
-
-const EDGE_FOR_PAYER: Record<string, 0 | 1> = { [EV_ID]: 0, [CHARGER_ID]: 1 };
-
-const EDGE_STATE: Record<string, EdgeState> = {
-  checking: "flowing",
-  signing: "flowing",
-  pending: "flowing",
-  confirmed: "confirmed",
-  blocked: "blocked",
-  failed: "blocked",
-};
+import { CHARGE_PRICE, CHARGER_ID, ENERGY_SETTLEMENT, EV_ID, OVER_LIMIT_ATTEMPT, PROVIDER_ID } from "./lib/machines";
 
 export default function App() {
   const chainId = useChainId();
-  const { address, isConnected } = useAccount();
-  const { data: walletBalance } = useBalance({ address, query: { refetchInterval: 8000 } });
+  const { isConnected } = useAccount();
+  const { address } = useAccount();
+  const { data: walletBalance } = useBalance({ address });
 
+  const [battery, setBattery] = useState(18);
+
+  const activity = useActivity(12);
   const fleet = useFleet();
-  const payment = usePayment();
-  // The timeline needs the live payment so a refusal — which never becomes
-  // contract state — still shows up in the machine's history.
-  const activity = useActivity(12, payment.status);
 
   const refreshAll = useCallback(() => {
-    void fleet.refetch();
-    void activity.refetch();
-  }, [activity, fleet]);
+    fleet.refetch();
+    activity.refetch();
+  }, [fleet, activity]);
 
+  const payment = usePayment();
   const setup = useSetup(refreshAll);
 
-  /// Battery is local machine telemetry — the physical side of the simulation.
-  /// Money is on chain; charge level is not.
-  const [battery, setBattery] = useState(START_BATTERY_PCT);
-  const [flowVisible, setFlowVisible] = useState(true);
-
   const { phase, intent } = payment.status;
-  const busy = phase === "checking" || phase === "signing" || phase === "pending";
+  const busy = phase === "checking" || phase === "signing" || phase === "pending" || setup.status.phase === "running";
 
-  // Let a finished flow rest after a few seconds; the receipt panel stays put.
-  useEffect(() => {
-    if (phase !== "confirmed" && phase !== "blocked" && phase !== "failed") {
-      setFlowVisible(true);
-      return;
+  const activeEdge = useMemo<0 | 1 | null>(() => {
+    if (!intent) return null;
+    if (intent.from === EV_ID && intent.to === CHARGER_ID) return 0;
+    if (intent.from === CHARGER_ID && intent.to === PROVIDER_ID) return 1;
+    return null;
+  }, [intent]);
+
+  const edgeState = useMemo<EdgeState>(() => {
+    switch (phase) {
+      case "checking":
+      case "signing":
+      case "pending":
+        return "flowing";
+      case "confirmed":
+        return "confirmed";
+      case "blocked":
+      case "failed":
+        return "blocked";
+      default:
+        return "idle";
     }
-    setFlowVisible(true);
-    const timer = setTimeout(() => setFlowVisible(false), 5000);
-    return () => clearTimeout(timer);
-  }, [phase, payment.status.hash]);
+  }, [phase]);
 
   const onChargeConfirmed = useCallback(() => {
-    setBattery((current) => clampPercent(current + BATTERY_GAIN_PCT));
+    setBattery((prev) => Math.min(100, prev + 27));
     refreshAll();
   }, [refreshAll]);
 
@@ -129,23 +116,42 @@ export default function App() {
       hint: "The charger settles its supply bill",
       variant: "secondary",
       disabled: controlsDisabled,
-      onRun: () => run({ from: CHARGER_ID, to: PROVIDER_ID, amount: ENERGY_SETTLEMENT, label: "Energy settlement" }),
+      onRun: () =>
+        run({ from: CHARGER_ID, to: PROVIDER_ID, amount: ENERGY_SETTLEMENT, label: "Energy settlement" }),
     },
     {
-      key: "limit",
-      title: "Test spending limit",
+      key: "refusal",
+      title: "Test spending limit (will refuse)",
       route: `${CHARGER_ID} → ${PROVIDER_ID}`,
       amount: OVER_LIMIT_ATTEMPT,
-      hint: "Above the charger's rule — the contract refuses",
+      hint: "Demonstrates spending limit refusal — max is 2 MON",
       variant: "danger",
       disabled: controlsDisabled,
       onRun: () =>
-        run({ from: CHARGER_ID, to: PROVIDER_ID, amount: OVER_LIMIT_ATTEMPT, label: "Bulk energy purchase" }),
+        run({
+          from: CHARGER_ID,
+          to: PROVIDER_ID,
+          amount: OVER_LIMIT_ATTEMPT,
+          label: "Over-limit request",
+        }),
+    },
+    {
+      key: "allowlist_refusal",
+      title: "Test allowlist breach (will refuse)",
+      route: `${EV_ID} → ${PROVIDER_ID}`,
+      amount: parseEther("0.1"),
+      hint: "EV tries paying provider directly — blocked by allowlist",
+      variant: "danger",
+      disabled: controlsDisabled,
+      onRun: () =>
+        run({
+          from: EV_ID,
+          to: PROVIDER_ID,
+          amount: parseEther("0.1"),
+          label: "Unauthorized recipient request",
+        }),
     },
   ];
-
-  const activeEdge = flowVisible && intent ? (EDGE_FOR_PAYER[intent.from] ?? null) : null;
-  const edgeState: EdgeState = activeEdge === null ? "idle" : (EDGE_STATE[phase] ?? "idle");
 
   const statusFor = (id: string): CardStatus => {
     const machine = fleet.byId.get(id);
@@ -176,7 +182,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-backdrop min-h-screen">
+    <div className="app-backdrop min-h-screen pb-12">
       <div className="mx-auto max-w-6xl px-5 py-8 md:px-8">
         <Header />
 
@@ -184,8 +190,8 @@ export default function App() {
           <HowItWorks />
         </div>
 
-        <main className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_21rem]">
-          <div className="grid min-w-0 gap-5">
+        <main className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="grid min-w-0 gap-6">
             <div className="grid gap-4 md:grid-cols-3">
               {fleet.machines.map((machine) => (
                 <MachineCard
@@ -227,7 +233,7 @@ export default function App() {
             <PolicyPanel machines={fleet.machines} payment={payment.status} />
           </div>
 
-          <aside className="grid min-w-0 gap-5">
+          <aside className="grid min-w-0 gap-6">
             <SetupPanel
               machines={fleet.machines}
               contractAddress={fleet.contractAddress}
@@ -249,22 +255,22 @@ export default function App() {
           </aside>
         </main>
 
-        <footer className="mt-8 border-t border-ink-700/70 pt-6">
-          <p className="max-w-3xl text-xs leading-relaxed text-ink-400">
+        <footer className="font-apple mt-12 border-t border-black/[0.06] pt-6">
+          <p className="max-w-3xl text-xs font-medium leading-relaxed text-[#86868b]">
             MachinePay gives machines programmable economic identities so they can pay for resources and services
             automatically, while smart-contract policies prevent unauthorized spending.
           </p>
-          <ol className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[0.7rem] text-ink-500">
+          <ol className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[0.72rem] font-bold text-[#86868b]">
             {["Physical machine", "On-device controller", "MachinePay SDK", "Machine wallet contract", "Monad"].map(
               (step, index, all) => (
                 <li key={step} className="flex items-center gap-2">
-                  <span className={index === 1 || index === 2 ? "text-mint-300/70" : ""}>{step}</span>
-                  {index < all.length - 1 && <span aria-hidden="true">→</span>}
+                  <span className={index === 1 || index === 2 ? "text-[#0071e3] font-bold" : "text-[#1d1d1f]"}>{step}</span>
+                  {index < all.length - 1 && <span className="text-black/20" aria-hidden="true">→</span>}
                 </li>
               ),
             )}
           </ol>
-          <p className="mt-2 text-[0.7rem] text-ink-500">
+          <p className="mt-2 text-[0.7rem] font-semibold text-[#86868b]">
             This demo implements everything from the simulated controller onward. Balances, limits and refusals are
             contract state on {preferredChain.name}.
           </p>
