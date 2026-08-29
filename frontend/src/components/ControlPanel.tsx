@@ -17,6 +17,9 @@ type Props = {
   busy: boolean;
   /// Why the controls are inert, if they are. Shown once, above the buttons.
   blockedReason?: string;
+  autoPilot?: boolean;
+  onToggleAutoPilot?: () => void;
+  autoPilotStep?: string;
 };
 
 const ICONS = {
@@ -37,7 +40,14 @@ const ICON_BG = {
   danger: "bg-[#ff3b30]/15 text-[#d70015] border-[#ff3b30]/30",
 };
 
-export function ControlPanel({ actions, busy, blockedReason }: Props) {
+export function ControlPanel({
+  actions,
+  busy,
+  blockedReason,
+  autoPilot = false,
+  onToggleAutoPilot,
+  autoPilotStep = "",
+}: Props) {
   return (
     <section className="panel p-6">
       <div className="mb-1 flex items-baseline justify-between gap-4">
@@ -47,6 +57,48 @@ export function ControlPanel({ actions, busy, blockedReason }: Props) {
       <p className="font-apple text-xs font-medium text-[#86868b]">
         Each control is a request from a machine controller. The contract decides what happens next.
       </p>
+
+      {/* Auto-Pilot / Autonomous Loop Banner */}
+      <div className={`mt-4 rounded-2xl border p-4 transition-all ${
+        autoPilot ? "border-[#34c759]/40 bg-[#34c759]/10 shadow-xs" : "border-[#0071e3]/20 bg-[#0071e3]/5"
+      }`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3 shrink-0">
+              {autoPilot ? (
+                <>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#34c759] opacity-75"></span>
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-[#34c759]"></span>
+                </>
+              ) : (
+                <span className="h-3 w-3 rounded-full bg-[#86868b]"></span>
+              )}
+            </span>
+            <div>
+              <h3 className="font-grotesk text-xs font-bold text-[#1d1d1f]">
+                Autonomous Fleet Auto-Pilot
+              </h3>
+              <p className="font-apple text-[0.72rem] font-medium text-[#86868b]">
+                {autoPilot
+                  ? autoPilotStep || "Continuous machine-to-machine payment loop active..."
+                  : "Run EV Charging → Energy Settlement in a continuous loop"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onToggleAutoPilot}
+            disabled={Boolean(blockedReason)}
+            className={`focus-ring shrink-0 rounded-xl px-3.5 py-2 font-grotesk text-xs font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+              autoPilot
+                ? "bg-[#ff3b30] text-white hover:bg-[#d70015] shadow-2xs"
+                : "bg-[#0071e3] text-white hover:bg-[#0077ed] shadow-2xs"
+            }`}
+          >
+            {autoPilot ? "Stop Auto-Pilot" : "⚡ Start Auto-Pilot"}
+          </button>
+        </div>
+      </div>
 
       {blockedReason && (
         <div className="font-apple mt-4 flex items-center gap-2.5 rounded-2xl border border-[#ffe3b3] bg-[#fff8ec] px-4 py-3 text-xs font-bold text-[#b36b00] shadow-2xs">

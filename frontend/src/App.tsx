@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { parseEther } from "viem";
 import { useAccount, useChainId, useBalance } from "wagmi";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { ControlPanel, type Action } from "./components/ControlPanel";
@@ -23,6 +24,10 @@ export default function App() {
   const { data: walletBalance } = useBalance({ address });
 
   const [battery, setBattery] = useState(18);
+  const [autoPilot, setAutoPilot] = useState(false);
+  const [autoPilotStep, setAutoPilotStep] = useState("");
+  const autoPilotRef = useRef(false);
+  autoPilotRef.current = autoPilot;
 
   const activity = useActivity(12);
   const fleet = useFleet();
@@ -93,6 +98,112 @@ export default function App() {
 
   const controlsDisabled = Boolean(blockedReason);
 
+  const toggleAutoPilot = useCallback(() => {
+    setAutoPilot((prev) => !prev);
+  }, []);
+
+  const payRef = useRef(payment.pay);
+  payRef.current = payment.pay;
+
+  const onChargeConfirmedRef = useRef(onChargeConfirmed);
+  onChargeConfirmedRef.current = onChargeConfirmed;
+
+  const refreshAllRef = useRef(refreshAll);
+  refreshAllRef.current = refreshAll;
+
+  useEffect(() => {
+    if (!autoPilot) {
+      setAutoPilotStep("");
+      return;
+    }
+
+    let active = true;
+
+    const runLoop = async () => {
+      while (active && autoPilotRef.current) {
+        if (controlsDisabled) {
+          setAutoPilot(false);
+          break;
+        }
+
+        // Step 1: EV Charging Session
+        // force: true skips simulateContract() so writeContract() is called
+        // with no async RPC awaits before it — the browser keeps its
+        // user-gesture token alive and MetaMask can open its popup.
+        let step1Confirmed = false;
+        setAutoPilotStep("Step 1/2: EV-001 paying Charger-007 for energy...");
+        try {
+          await payRef.current(
+            { from: EV_ID, to: CHARGER_ID, amount: CHARGE_PRICE, label: "Charging session" },
+            {
+              skipPreflight: true,
+              onConfirmed: () => {
+                step1Confirmed = true;
+                onChargeConfirmedRef.current();
+              },
+            },
+          );
+        } catch {
+          setAutoPilot(false);
+          break;
+        }
+
+        if (!step1Confirmed || !active || !autoPilotRef.current) {
+          if (!step1Confirmed) setAutoPilot(false);
+          break;
+        }
+
+        // Cooldown timer with countdown after charging
+        for (let cd = 8; cd > 0; cd--) {
+          if (!active || !autoPilotRef.current) break;
+          setAutoPilotStep(`Charging complete! Cooldown & discharge simulation: ${cd}s remaining...`);
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+        if (!active || !autoPilotRef.current) break;
+
+        // Step 2: Energy Settlement (also force: true for the same reason)
+        let step2Confirmed = false;
+        setAutoPilotStep("Step 2/2: Charger-007 settling grid bill with Provider...");
+        try {
+          await payRef.current(
+            { from: CHARGER_ID, to: PROVIDER_ID, amount: ENERGY_SETTLEMENT, label: "Energy settlement" },
+            {
+              skipPreflight: true,
+              onConfirmed: () => {
+                step2Confirmed = true;
+                refreshAllRef.current();
+              },
+            },
+          );
+        } catch {
+          setAutoPilot(false);
+          break;
+        }
+
+        if (!step2Confirmed || !active || !autoPilotRef.current) {
+          if (!step2Confirmed) setAutoPilot(false);
+          break;
+        }
+
+        // 30-second cooldown timer between full cycles with a live countdown
+        for (let cd = 30; cd > 0; cd--) {
+          if (!active || !autoPilotRef.current) break;
+          setAutoPilotStep(`Cycle complete! Cooldown in progress: next cycle repeating in ${cd}s... (Click 'Stop Auto-Pilot' to cancel)`);
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
+      if (active) {
+        setAutoPilotStep("");
+      }
+    };
+
+    void runLoop();
+
+    return () => {
+      active = false;
+    };
+  }, [autoPilot, controlsDisabled]);
+
   const actions: Action[] = [
     {
       key: "charge",
@@ -124,7 +235,7 @@ export default function App() {
       title: "Test spending limit (will refuse)",
       route: `${CHARGER_ID} → ${PROVIDER_ID}`,
       amount: OVER_LIMIT_ATTEMPT,
-      hint: "Demonstrates spending limit refusal — max is 2 MON",
+      hint: "Demonstrates spending limit refusal — max is 0.03 MON",
       variant: "danger",
       disabled: controlsDisabled,
       onRun: () =>
@@ -139,7 +250,7 @@ export default function App() {
       key: "allowlist_refusal",
       title: "Test allowlist breach (will refuse)",
       route: `${EV_ID} → ${PROVIDER_ID}`,
-      amount: parseEther("0.1"),
+      amount: parseEther("0.01"),
       hint: "EV tries paying provider directly — blocked by allowlist",
       variant: "danger",
       disabled: controlsDisabled,
@@ -147,7 +258,7 @@ export default function App() {
         run({
           from: EV_ID,
           to: PROVIDER_ID,
-          amount: parseEther("0.1"),
+          amount: parseEther("0.01"),
           label: "Unauthorized recipient request",
         }),
     },
@@ -175,7 +286,7 @@ export default function App() {
     if (phase === "blocked" && intent?.from === id) return "Payment refused by its own spending rule";
     if (id === EV_ID && phase === "confirmed" && intent?.from === EV_ID) return `Battery topped up to ${battery}%`;
     if (id === CHARGER_ID) {
-      const price = charger ? "0.5 MON per session" : undefined;
+      const price = charger ? "0.01 MON per session" : undefined;
       return price;
     }
     return undefined;
@@ -228,7 +339,14 @@ export default function App() {
               onProveOnChain={proveOnChain}
             />
 
-            <ControlPanel actions={actions} busy={busy} blockedReason={blockedReason} />
+            <ControlPanel
+              actions={actions}
+              busy={busy}
+              blockedReason={blockedReason}
+              autoPilot={autoPilot}
+              onToggleAutoPilot={toggleAutoPilot}
+              autoPilotStep={autoPilotStep}
+            />
 
             <PolicyPanel machines={fleet.machines} payment={payment.status} />
           </div>

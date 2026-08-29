@@ -1,10 +1,10 @@
 {
   "10143": {
-    "address": "0x844652E55C58A2598134DEbA51f9212C6e1dEc6c",
+    "address": "0xE6FD5bc965dAe213137c31a1d093633D41B168ea",
     "deployer": "0xF2fAE4E371b72f277EB588698afaD6a250D61111",
     "network": "monadTestnet",
-    "blockNumber": 57903201,
-    "deployedAt": "2026-08-29T10:40:27.725Z"
+    "blockNumber": 57908402,
+    "deployedAt": "2026-08-29T11:06:40.073Z"
   },
   "31337": {
     "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",

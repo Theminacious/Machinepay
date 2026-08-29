@@ -40,8 +40,14 @@ export type PaymentStatus = {
 };
 
 export type PayOptions = {
-  /// Skip the pre-flight check and submit regardless, so a rejected payment
-  /// produces a real reverted transaction that judges can open in the explorer.
+  /// Skip the pre-flight simulateContract() check. Used by Auto-Pilot so that
+  /// writeContract() is reached without any async RPC awaits before it —
+  /// browsers revoke the user-gesture token across async boundaries, which
+  /// prevents MetaMask from opening its popup window.
+  skipPreflight?: boolean;
+  /// Skip the pre-flight AND supply a manual gas cap so the transaction is
+  /// sent even when the contract will revert it. Used by "prove refusal on
+  /// chain" only — never set this from the Auto-Pilot loop.
   force?: boolean;
   onConfirmed?: () => void;
 };
@@ -86,8 +92,11 @@ export function usePayment() {
       // Pre-flight: the contract evaluates the policy against live state. A
       // rejection here is the contract's decision, not a frontend guess — and
       // it means we never ask anyone to sign a payment that cannot succeed.
+      // Skipped when skipPreflight or force is set: the async RPC await would
+      // revoke the browser's user-gesture token and prevent MetaMask from
+      // opening its popup.
       let preflightSkipped: Rejection | undefined;
-      if (!options.force) {
+      if (!options.force && !options.skipPreflight) {
         setStatus({ phase: "checking", intent });
         try {
           await publicClient.simulateContract(call);
@@ -116,7 +125,7 @@ export function usePayment() {
         hash = await walletClient.writeContract({
           ...call,
           chain: walletClient.chain,
-          ...(options.force ? { gas: FORCE_GAS } : {}),
+          gas: 300_000n,
         });
       } catch (error) {
         const rejection = toRejection(error);

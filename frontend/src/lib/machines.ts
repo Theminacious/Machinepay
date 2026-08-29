@@ -23,23 +23,23 @@ export const CHARGER_ID = "Charger-007";
 export const PROVIDER_ID = "EnergyProvider-001";
 
 export const FLEET: MachineSpec[] = [
-  { id: EV_ID, kind: "vehicle", role: "Electric vehicle", seed: "1.5", limit: "2", daily: "3", allowed: [CHARGER_ID] },
+  { id: EV_ID, kind: "vehicle", role: "Electric vehicle", seed: "0.05", limit: "0.03", daily: "0.1", allowed: [CHARGER_ID] },
   {
     id: CHARGER_ID,
     kind: "charger",
     role: "Charging station",
-    seed: "1.5",
-    limit: "2",
-    daily: "5",
+    seed: "0.05",
+    limit: "0.03",
+    daily: "0.1",
     allowed: [PROVIDER_ID],
   },
-  { id: PROVIDER_ID, kind: "utility", role: "Energy provider", seed: "0", limit: "5", daily: "0", allowed: [] },
+  { id: PROVIDER_ID, kind: "utility", role: "Energy provider", seed: "0", limit: "0.1", daily: "0", allowed: [] },
 ];
 
 /// Demo economics, matching contracts/scripts/demoFlow.js.
-export const CHARGE_PRICE = parseEther("0.5");
-export const ENERGY_SETTLEMENT = parseEther("1");
-export const OVER_LIMIT_ATTEMPT = parseEther("5");
+export const CHARGE_PRICE = parseEther("0.01");
+export const ENERGY_SETTLEMENT = parseEther("0.02");
+export const OVER_LIMIT_ATTEMPT = parseEther("0.04");
 
 /// kWh delivered per charging session — local telemetry, not money.
 export const BATTERY_GAIN_PCT = 27;
