@@ -1,0 +1,24 @@
+{
+  "name": "machinepay-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MachineWalletManager - programmable economic identities for machines on Monad",
+  "type": "commonjs",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "abi": "hardhat run scripts/exportAbi.js",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy": "hardhat run scripts/deploy.js --network monadTestnet",
+    "setup:local": "hardhat run scripts/setupDemo.js --network localhost",
+    "setup": "hardhat run scripts/setupDemo.js --network monadTestnet",
+    "demo:local": "hardhat run scripts/demoFlow.js --network localhost",
+    "demo": "hardhat run scripts/demoFlow.js --network monadTestnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.6.1",
+    "hardhat": "^2.29.1"
+  }
+}

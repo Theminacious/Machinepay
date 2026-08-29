@@ -1,0 +1,16 @@
+{
+  "10143": {
+    "address": "0xEb4795dF65f97D8ab78132E56B3f3357556F6e0f",
+    "deployer": "0xdB59860743Af29026b5F4AD540BE7c098F7D692f",
+    "network": "monadTestnet",
+    "blockNumber": 57896042,
+    "deployedAt": "2026-08-29T10:04:22.371Z"
+  },
+  "31337": {
+    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "network": "localhost",
+    "blockNumber": 1,
+    "deployedAt": "2026-08-29T09:16:26.194Z"
+  }
+}
